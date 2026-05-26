@@ -1,0 +1,37 @@
+Term,Library,p-value,q-value,z-score,combined score,overlaps
+secondary alcohol biosynthetic process (GO:1902653),GO_Biological_Process_2021,4.81e-12,6.0080e-9,36.07,940.0,FDPS;SQLE;NSDHL;HMGCS1;MSMO1;DHCR24;HMGCR;LSS;ACAT2;FDFT1
+cholesterol biosynthetic process (GO:0006695),GO_Biological_Process_2021,6.665e-12,6.0080e-9,34.63,891.1,FDPS;SQLE;NSDHL;HMGCS1;MSMO1;DHCR24;HMGCR;LSS;ACAT2;FDFT1
+sterol biosynthetic process (GO:0016126),GO_Biological_Process_2021,1.664e-11,9.9980e-9,30.91,767.2,FDPS;SQLE;NSDHL;HMGCS1;MSMO1;DHCR24;HMGCR;LSS;ACAT2;FDFT1
+Cholesterol Biosynthesis R-HSA-191273,Reactome_2022,4.642e-10,2.3950e-7,38.15,819.9,FDPS;SQLE;NSDHL;HMGCS1;MSMO1;DHCR24;HMGCR;FDFT1
+cholesterol metabolic process (GO:0008203),GO_Biological_Process_2021,2.573e-8,1.1600e-5,12.89,225.3,FDPS;SQLE;NSDHL;HMGCS1;MSMO1;DHCR24;HMGCR;LSS;ACAT2;FDFT1
+Steroid biosynthesis,KEGG_2021_Human,8.988e-8,1.6900e-5,36.48,591.9,SQLE;NSDHL;DHCR24;MSMO1;LSS;FDFT1
+regulation of microglial cell activation (GO:1903978),GO_Biological_Process_2021,6.234e-7,0.0002248,42.39,605.6,CCL3;TREM2;NR1D1;CST7;LDLR
+regulation of lipid metabolic process (GO:0019216),GO_Biological_Process_2021,0.000001515,0.0004554,9.318,124.9,FDPS;SQLE;HMGCS1;TNFAIP8L3;HMGCR;NR1D1;CCDC3;LSS;FDFT1
+Metabolism Of Steroids R-HSA-8957322,Reactome_2022,0.000002276,0.0005871,6.695,87.00,POMC;FDPS;SQLE;NSDHL;STARD4;HMGCS1;SRD5A3;MSMO1;DHCR24;HMGCR;FDFT1
+osteoclast differentiation (GO:0030316),GO_Biological_Process_2021,0.000005107,0.001315,24.92,303.7,DCSTAMP;TYROBP;GLO1;SNX10;TREM2
+regulation of astrocyte activation (GO:0061888),GO_Biological_Process_2021,0.00001635,0.003570,126.1,1390,TREM2;NR1D1;LDLR
+negative regulation of neuroinflammatory response (GO:0150079),GO_Biological_Process_2021,0.00001782,0.003570,33.76,369.2,TREM2;NR1D1;CST7;LDLR
+myeloid leukocyte differentiation (GO:0002573),GO_Biological_Process_2021,0.00002153,0.003882,9.327,100.2,DCSTAMP;TYROBP;GLO1;CAMK4;SNX10;TREM2;TGFBR2
+Initial Triggering Of Complement R-HSA-166663,Reactome_2022,0.0000998,0.01717,19.85,182.9,C4B;C4A;PIKFYVE;MASP1
+Terpenoid backbone biosynthesis,KEGG_2021_Human,0.0001208,0.01136,18.75,169.1,FDPS;HMGCS1;HMGCR;ACAT2
+Activation Of Gene Expression By SREBF (SREBP) R-HSA-2426168,Reactome_2022,0.0001359,0.01753,11.44,101.9,FDPS;SQLE;HMGCS1;HMGCR;FDFT1
+Butanoate metabolism,KEGG_2021_Human,0.0003198,0.02004,14.06,113.1,HMGCS1;ACSM4;AACS;ACAT2
+decreased sensitivity to induced morbidity/mortality MP:0009764,MGI_Mammalian_Phenotype_Level_4_2021,0.000377,0.3302,9.001,70.96,CAMK2D;AQP4;NR1D1;PDCD1;HABP2
+Regulation Of Cholesterol Biosynthesis By SREBP (SREBF) R-HSA-1655829,Reactome_2022,0.0004902,0.05059,8.460,64.47,FDPS;SQLE;HMGCS1;HMGCR;FDFT1
+Activation Of C3 And C5 R-HSA-174577,Reactome_2022,0.00205,0.1511,41.86,259.1,C4B;C4A
+SMAD2/3 Phosphorylation Motif Mutants In Cancer R-HSA-3304356,Reactome_2022,0.00205,0.1511,41.86,259.1,TGFBR1;TGFBR2
+abnormal CNS glial cell morphology MP:0000952,MGI_Mammalian_Phenotype_Level_4_2021,0.002168,0.3302,13.27,81.37,GPR34;LDLR;GFAP
+impaired conditioned place preference behavior MP:0009712,MGI_Mammalian_Phenotype_Level_4_2021,0.002471,0.3302,12.60,75.65,POMC;CNR1;CAMK4
+abnormal Purkinje cell dendrite morphology MP:0008572,MGI_Mammalian_Phenotype_Level_4_2021,0.002524,0.3302,7.660,45.82,CAMK4;ATM;NR1D1;IP6K3
+increased IgG3 level MP:0008502,MGI_Mammalian_Phenotype_Level_4_2021,0.0028,0.3302,12.00,70.54,TYROBP;PDCD1;SAMSN1
+abnormal short term spatial reference memory MP:0008431,MGI_Mammalian_Phenotype_Level_4_2021,0.002847,0.3302,33.49,196.3,RELN;LDLR
+increased aorta wall thickness MP:0010996,MGI_Mammalian_Phenotype_Level_4_2021,0.002847,0.3302,33.49,196.3,TGFBR1;TGFBR2
+Loss Of Function Of SMAD2/3 In Cancer R-HSA-3304349,Reactome_2022,0.002847,0.1632,33.49,196.3,TGFBR1;TGFBR2
+Loss Of Function Of TGFBR1 In Cancer R-HSA-3656534,Reactome_2022,0.002847,0.1632,33.49,196.3,TGFBR1;TGFBR2
+Complement and coagulation cascades,KEGG_2021_Human,0.003466,0.1629,5.280,29.91,C4B;C4A;SERPINF2;ITGAX;MASP1
+Signaling By TGF-beta Receptor Complex In Cancer R-HSA-3304351,Reactome_2022,0.003766,0.1646,27.90,155.8,TGFBR1;TGFBR2
+Synthesis and degradation of ketone bodies,KEGG_2021_Human,0.005959,0.2240,20.93,107.2,HMGCS1;ACAT2
+Osteoclast differentiation,KEGG_2021_Human,0.01803,0.4435,3.455,13.87,TYROBP;CAMK4;TREM2;TGFBR1;TGFBR2
+Pyruvate metabolism,KEGG_2021_Human,0.01837,0.4435,5.721,22.87,GLO1;ME3;ACAT2
+"Valine, leucine and isoleucine degradation",KEGG_2021_Human,0.01942,0.4435,5.593,22.05,HMGCS1;AACS;ACAT2
+Apelin signaling pathway,KEGG_2021_Human,0.02412,0.4435,3.191,11.89,MEF2C;CAMK4;GNB4;CCN2;TGFBR1

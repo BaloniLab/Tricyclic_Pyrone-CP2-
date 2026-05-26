@@ -1,0 +1,17 @@
+entrezgene_id,external_gene_name,Expression,Reactions
+104923,Adi1,Upregulated,HMR_5389
+109652,Acy1,Upregulated,RE2640C
+110175,Ggct,Upregulated,r0568; GGLUCT
+12861,Cox6a1,Upregulated,CYOOm2i; CYOOm3i
+13142,Dao,Downregulated,DALAOXx
+209027,Pycr1,Upregulated,HPROb; HPROxm; P5CR; HPROx; HPROym; P5CRm; P5CRxm
+229363,Gmps,Downregulated,GMPS2; GMPS
+230099,Car9,Downregulated,HCO3Ee; HCO3E
+24059,Slco2a1,Upregulated,r2330; r2314; r2325; r2328; r2313; r2326; r2319; r2329; PROSTGE2t; r2317; r2331; PROSTGD2t; r2334; r2327; r2316; r2333; r2322; r2335; r2315; r2332; r2320; r2318; r2324; PROSTGE1t; r2323; r2321
+269378,Ahcy,Downregulated,AHCi
+27411,Slc14a2,Downregulated,UREAt
+56632,Sphk2,Upregulated,SPHK21c; SLCBK1
+57394,Cltrn,Downregulated,SERt4; ARGB0AT3tc; ALAB0AT3tc; GLNB0AT3tc; CYSB0AT3tc; CYSt4; LEUB0AT3tc; TRPB0AT3tc; SERB0AT3tc; 4OHPROIMINOtc; TYRt4; GLUB0AT3tc; ILEB0AT3tc; GLYt4; ASNt4; VALB0AT3tc; LEUt4; GLYB0AT3tc; METB0AT3tc; VALt4; PHEt4; GLNt4; TYRB0AT3tc; PROt4; TRPt4; PROIMINOtc; ALAt4; PHEB0AT3tc; ASNB0AT3tc; ILEt4; THRt4; METt4
+66948,Acad8,Downregulated,ACOAD1fm; ACOAD9m
+76668,Mdh1b,Downregulated,HMR_9804; MDH
+78801,Ak7,Downregulated,DADK; ADK1

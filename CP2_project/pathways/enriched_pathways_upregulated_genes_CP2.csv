@@ -1,0 +1,18 @@
+Term,Library,p-value,q-value,z-score,combined score,overlaps
+regulation of cytochrome-c oxidase activity (GO:1904959),GO_Biological_Process_2021,0.00008506,0.04474,233.2,2186,SPHK2;COA8
+positive regulation of mast cell activation (GO:0033005),GO_Biological_Process_2021,0.000178,0.0468,139.9,1208,SPHK2;CRLF2
+abnormal blood-brain barrier function MP:0005167,MGI_Mammalian_Phenotype_Level_4_2021,0.001903,0.1761,34.95,218.9,CLDN5;TNFRSF19
+abnormal T cell proliferation MP:0005094,MGI_Mammalian_Phenotype_Level_4_2021,0.002457,0.1761,30.39,182.6,STAT4;CRLF2
+positive regulation of ion transmembrane transporter activity (GO:0032414),GO_Biological_Process_2021,0.002657,0.1719,29.12,172.7,PDZK1;COA8;SPHK2
+regulation of reactive oxygen species biosynthetic process (GO:1903426),GO_Biological_Process_2021,0.003078,0.1719,26.88,155.4,SPHK2;COA8
+positive regulation of receptor signaling pathway via STAT (GO:1904894),GO_Biological_Process_2021,0.004009,0.1719,23.29,128.5,HES5;CRLF2
+smoothened signaling pathway (GO:0007224),GO_Biological_Process_2021,0.004782,0.1719,21.17,113.1,EVC2;HES5
+abnormal cytokine secretion MP:0003009,MGI_Mammalian_Phenotype_Level_4_2021,0.007125,0.1761,8.164,40.36,STAT4;MYD88;CRLF2
+Signaling By EGFR R-HSA-177929,Reactome_2022,0.009205,0.2865,14.85,69.63,SPRY1;SH3GL1
+Notch signaling pathway,KEGG_2021_Human,0.01314,0.5676,12.24,53.02,MFNG;HES5
+Cell-cell Junction Organization R-HSA-421270,Reactome_2022,0.014,0.2865,11.82,50.47,CLDN5;CDH17
+negative regulation of histone deacetylation (GO:0031064),GO_Biological_Process_2021,0.01466,0.1719,85.94,362.8,SPHK2
+DEx/H-box Helicases Activate Type I IFN And Inflammatory Cytokines Production R-HSA-3134963,Reactome_2022,0.02047,0.2865,57.28,222.8,MYD88
+RUNX3 Regulates YAP1-mediated Transcription R-HSA-8951671,Reactome_2022,0.02336,0.2865,49.1,184.4,WWTR1
+JAK-STAT signaling pathway,KEGG_2021_Human,0.08271,0.5676,4.338,10.81,STAT4;CRLF2
+Sphingolipid metabolism,KEGG_2021_Human,0.1349,0.5676,7.145,14.31,SPHK2
