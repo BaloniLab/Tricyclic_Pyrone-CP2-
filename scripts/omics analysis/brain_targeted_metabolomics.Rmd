@@ -1,0 +1,362 @@
+---
+title: "Brain targeted metabolomic for CP2 project"
+output: html_document
+author: "Esraa Gabal - Baloni Lab - Purdue University"
+date: "2025-11-18"
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_knit$set(root.dir = "/Users/eso1993/Library/CloudStorage/Box-Box/CP2_project/brain_targeted_metabolomics")
+```
+
+## load the required packages and read the data 
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+# installing MetaboAnalystR
+# install necessary pacakages and dependcies 
+# install.packages("Rcpp")
+# install.packages("RcppArmadillo")
+# install.packages("qs")
+# install.packages("Cairo")
+# install.packages("devtools")
+# install.packages("pacman")
+library(pacman)
+pacman::p_load(c("impute", "pcaMethods", "globaltest", "GlobalAncova", "Rgraphviz", "preprocessCore", "genefilter", "SSPA", "sva", "limma", "KEGGgraph", "siggenes","BiocParallel", "MSnbase", "multtest", "RBGL", "edgeR", "fgsea"))
+# install.packages(c("BiocManager", "Rcpp", "devtools"))
+# BiocManager::install(c("Biobase", "pcaMethods", "siggenes", "MSnbase", "impute", "fgsea", "edgeR", "BiocParallel", "RBGL"))
+Sys.setenv(LD_LIBRARY_PATH=paste(Sys.getenv("LD_LIBRARY_PATH"), "/opt/X11/lib", sep=":"))
+# devtools::install_local("/Users/eso1993/MetaboAnalystR/", upgrade = "never", dependencies = TRUE, build_vignettes = FALSE)
+
+library(here)
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(tidyplots)
+library(scales)
+library(MetaboAnalystR)
+library(iheatmapr)
+library(viridis)
+library(RColorBrewer)
+library(pheatmap)
+
+# read the files 
+tca <- read.csv(here("processed_files_CSV", "TCA.csv"))
+acylcar <- read.csv(here("processed_files_CSV", "Acylcarnitines.csv"))
+nefa <- read.csv(here("processed_files_CSV", "NEFA_Long_chain_FA.csv"))
+scfa <- read.csv(here("processed_files_CSV", "SCFA_Short_chain_FA.csv"))
+purv_CoA <- read.csv(here("processed_files_CSV", "Pyruvate_AcetylCoA.csv"))
+```
+
+## visualizing the measurments of all metabolites (TCA mets)
+```{r error=FALSE, fig.align='center', fig.dpi=600, message=FALSE, fig.width=12, fig.height=6, warning=FALSE}
+tca_long <- tca %>%
+  mutate(Group = factor(Group,
+                        levels = c("NTG-Veh", "APPPS1-Veh", "APPPS1-CP2"))) %>%
+  pivot_longer(
+    cols = 4:14,
+    names_to  = "Metabolite",
+    values_to = "Value")
+
+# customed colors
+my_colors <- new_color_scheme(c("#9BCD9B", "#104E8B", "#FFA54F"), name = "new_color")
+
+# applied Dunn test method for performing Kruskal-Wallis test and adjusting p values using Benjamin Hocheberg method 
+
+p <- tca_long |> 
+  tidyplot(x = Group, y = Value, color = Group) |> 
+  add_mean_bar(alpha = 0.7) |> 
+  add_sem_errorbar(color = "black") |> 
+  add_data_points_beeswarm(color = "black", size = 0.5) |> 
+  adjust_colors(new_colors = my_colors) |>
+  remove_x_axis_title() |>
+  add_test_asterisks(method = "dunn_test", hide_info = TRUE, p.adjust.method = "BH") |> 
+  adjust_x_axis(rotate_labels = 45, labels = c("NTG-Veh", "APP/PS1-Veh", "APP/PS1-CP2")) |>
+  adjust_y_axis_title("Concentration (nmol/µg)") |>
+  adjust_title(fontsize = 10, face = "bold") |>
+  split_plot(by = Metabolite) 
+p
+```
+
+## Acylcarnitines 
+```{r, message=FALSE, error=FALSE, fig.dpi=600, fig.align='center', fig.width=12, fig.height=8, warning=FALSE}
+acyl_long <- acylcar %>%
+  mutate(Group = factor(Group,
+                        levels = c("NTG-Veh", "APPPS1-Veh", "APPPS1-CP2"))) %>%
+  pivot_longer(cols = 4:17,
+    names_to  = "Metabolite",
+    values_to = "Value")
+
+# customed colors
+my_colors <- new_color_scheme(c("#9BCD9B", "#104E8B", "#FFA54F"), name = "new_color")
+
+p <- acyl_long |> 
+  tidyplot(x = Group, y = Value, color = Group) |> 
+  add_mean_bar(alpha = 0.7) |> 
+  add_sem_errorbar(color = "black") |> 
+  add_data_points_beeswarm(color = "black", size = 0.5) |> 
+  adjust_colors(new_colors = my_colors) |>
+  remove_x_axis_title() |>
+  add_test_asterisks(method = "dunn_test", hide_info = TRUE, p.adjust.method = "BH") |> 
+  adjust_x_axis(rotate_labels = 45, labels = c("NTG-Veh", "APP/PS1-Veh", "APP/PS1-CP2")) |>
+  adjust_y_axis_title("Concentration (pmol/µg)") |>
+  adjust_title(fontsize = 10, face = "bold") |>
+  split_plot(by = Metabolite) 
+p
+
+```
+
+## Long-chain fatty acids (NEFA)
+```{r, message=FALSE, error=FALSE, fig.dpi=600, fig.align='center', fig.width=12, fig.height=6, warning=FALSE}
+nefa_long <- nefa %>%
+  mutate(Group = factor(Group,
+                        levels = c("NTG-Veh", "APPPS1-Veh", "APPPS1-CP2"))) %>%
+  pivot_longer(cols = 4:15,
+    names_to  = "Metabolite",
+    values_to = "Value")
+
+# customed colors
+my_colors <- new_color_scheme(c("#9BCD9B", "#104E8B", "#FFA54F"), name = "new_color")
+
+p <- nefa_long |> 
+  tidyplot(x = Group, y = Value, color = Group) |> 
+  add_mean_bar(alpha = 0.7) |> 
+  add_sem_errorbar(color = "black") |> 
+  add_data_points_beeswarm(color = "black", size = 0.5) |> 
+  adjust_colors(new_colors = my_colors) |>
+  remove_x_axis_title() |>
+  add_test_asterisks(method = "dunn_test", hide_info = TRUE, p.adjust.method = "BH") |> 
+  adjust_x_axis(rotate_labels = 45, labels = c("NTG-Veh", "APP/PS1-Veh", "APP/PS1-CP2")) |>
+  adjust_y_axis_title("Concentration (pmol/µg)") |>
+  adjust_title(fontsize = 10, face = "bold") |>
+  split_plot(by = Metabolite) 
+p
+```
+
+## Short-chain fatty acids (SCFA)
+```{r, message=FALSE, error=FALSE, fig.dpi=600, fig.align='center', fig.width=12, fig.height=6, warning=FALSE}
+scfa_long <- scfa %>%
+  mutate(Group = factor(Group,
+                        levels = c("NTG-Veh", "APPPS1-Veh", "APPPS1-CP2"))) %>%
+  pivot_longer(cols = 4:11,
+    names_to  = "Metabolite",
+    values_to = "Value")
+
+# customed colors
+my_colors <- new_color_scheme(c("#9BCD9B", "#104E8B", "#FFA54F"), name = "new_color")
+
+p <- scfa_long |> 
+  tidyplot(x = Group, y = Value, color = Group) |> 
+  add_mean_bar(alpha = 0.7) |> 
+  add_sem_errorbar(color = "black") |> 
+  add_data_points_beeswarm(color = "black", size = 0.5) |> 
+  adjust_colors(new_colors = my_colors) |>
+  remove_x_axis_title() |>
+  add_test_asterisks(method = "dunn_test", hide_info = TRUE, p.adjust.method = "BH") |> 
+  adjust_x_axis(rotate_labels = 45, labels = c("NTG-Veh", "APP/PS1-Veh", "APP/PS1-CP2")) |>
+  adjust_y_axis_title("Concentration (nmol/µg)") |>
+  adjust_title(fontsize = 10, face = "bold") |>
+  split_plot(by = Metabolite) 
+p
+```
+
+## Pyruvate
+```{r, message=FALSE, error=FALSE, fig.dpi=600, fig.align='center', warning=FALSE}
+pyruvate <- purv_CoA[,-4] # get only the info for pyruvate
+pyruvate$Group <- factor(pyruvate$Group, levels = unique(pyruvate$Group)) # get the groups as factors of three levels
+
+p <- pyruvate |> 
+  tidyplot(x = Group, y = `Pyruvate..nmol.µg.`, color = Group) |> 
+  add_mean_bar(alpha = 0.7) |> 
+  add_sem_errorbar(color = "black") |> 
+  add_data_points_beeswarm(color = "black", size = 0.5) |> 
+  adjust_colors(new_colors = my_colors) |>
+  remove_x_axis_title() |>
+  add_test_asterisks(method = "dunn_test", hide_info = TRUE, p.adjust.method = "BH") |> 
+  adjust_x_axis(rotate_labels = 45, labels = c("NTG-Veh", "APP/PS1-Veh", "APP/PS1-CP2")) |>
+  adjust_y_axis_title("Concentration (nmol/µg)") |>
+  adjust_title(fontsize = 10, face = "bold")
+p
+```
+
+## Acetyl-CoA
+```{r, message=FALSE, error=FALSE, fig.dpi=600, fig.align='center', warning=FALSE}
+coA <- purv_CoA[,-3] # get only the info for acetyl-CoA
+coA$Group <- factor(coA$Group, levels = unique(coA$Group)) # get the groups as factors of three levels
+
+p <- coA |> 
+  tidyplot(x = Group, y = `acetyl.CoA..pmol.µg.`, color = Group) |> 
+  add_mean_bar(alpha = 0.7) |> 
+  add_sem_errorbar(color = "black") |> 
+  add_data_points_beeswarm(color = "black", size = 0.5) |> 
+  adjust_colors(new_colors = my_colors) |>
+  remove_x_axis_title() |>
+  add_test_asterisks(method = "dunn_test", hide_info = TRUE, p.adjust.method = "BH") |> 
+  adjust_x_axis(rotate_labels = 45, labels = c("NTG-Veh", "APP/PS1-Veh", "APP/PS1-CP2")) |>
+  adjust_y_axis_title("Concentration (pmol/µg)") |>
+  adjust_title(fontsize = 10, face = "bold")
+p
+```
+
+## prepare all metabolites for MetaboanalystR
+```{r, message=FALSE, warning=FALSE, error=FALSE, fig.height=6, fig.width=12}
+
+# exclude the metabolites with zero concentration
+# convert nmol to pmol so that all measumrents are unified for certain mets with nmol conc
+tca_new <- tca %>%
+  select(-Unit) %>%
+  mutate(across(where(is.numeric), ~ . * 1000))
+
+scfa_new <- scfa %>%
+  select(-c(Unit,Group)) %>%
+  mutate(across(where(is.numeric), ~ . * 1000))
+
+pyrv_coa_new <- purv_CoA %>%
+  select(-Group) %>%
+  mutate(across(2, ~ . * 1000))
+colnames(pyrv_coa_new) <- c("SampleID", "Pyruvate", "Acetyl-CoA")
+
+# combine all metabolites in one dataframe 
+met_all <- list(tca_new, acylcar[,-c(2,3,11)], nefa[,-c(2,3,10,14)], scfa_new, pyrv_coa_new) %>%
+  reduce(full_join, by = "SampleID")
+
+# modify the column names 
+colnames(met_all) <- gsub("_", " ", colnames(met_all))
+colnames(met_all) <- gsub("\\.", "-", colnames(met_all))
+colnames(met_all) <- sapply(colnames(met_all), function(x) {paste0(toupper(substring(x, 1, 1)), substring(x, 2))})
+
+#write.csv(met_all, "/Users/eso1993/Library/CloudStorage/Box-Box/CP2_project/brain_targeted_metabolomics/processed_files_CSV/all_metabolites.csv", row.names = FALSE)
+```
+
+## Metaboanalyst R
+## Proceed data for MetaboanalystR and perform sanity check
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+rm(list = ls())
+# initialize the work with MetaboAnalystR
+# create the object of MetaboAnalystR
+mSet<-InitDataObjects("conc", "stat", FALSE)
+
+# read the data file by determining its path 
+mSet<-Read.TextData(mSet, here("processed_files_CSV/all_metabolites.csv"))
+mSet<-SanityCheckData(mSet) # check the data 
+```
+
+## Univariate Analysis
+```{r, message=FALSE, warning=FALSE, error=FALSE, fig.height=6, fig.width=12}
+#Mean centering scaling as it is the most traditional method for pretreating metabolomics data. Centring is used to correct for the differences between high and low abundant metabolites, allowing the data analysis to focus on the mean of the metabolite concentrations,
+
+mSet<-ReplaceMin(mSet)
+mSet<-PreparePrenormData(mSet)
+
+mSet<-Normalization(mSet,"NULL", "LogNorm", "MeanCenter", ratio=FALSE, ratioNum=FALSE)
+
+# row-wise normalization, followed by trsansformation and scaling of the data 
+# plotting normalized values of each metabolite across the samples 
+mSet<-PlotNormSummary(mSet, "~/Desktop/brain-normalization_metabolomics", format ="png", dpi=600, width=NA)
+
+# column-wise normalization, followed by transformation and scaling of the data 
+# plotting the normalized values of all samples 
+mSet<-PlotSampleNormSummary(mSet, "~/Desktop/brain-Normalizaton_accross_samples_metabolomics", format = "png", dpi=600, width=NA)
+```
+
+## Volcano analysis 
+```{r, message=FALSE, warning=FALSE, error=FALSE, fig.width=20, fig.height=10, fig.align='center'}
+# we will set the lfc threshold at 1.0 and a p-value cutt of 0.05, unequal variance (FALSE), and raw to use raw p-value
+mSet<-Volcano.Anal(mSet, paired = FALSE, fcthresh = 1.0, 0, F, 0.05, FALSE, "raw")
+
+```
+
+## Discriminative anaylsis (PLS-DA)
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+mSet <- PLSR.Anal(mSet, reg=TRUE)
+mSet <- PlotPLSPairSummary(mSet, "~/Desktop/brain-PLS_PAIR_summary", "png", 600, width=NA, 5) # for 5 components to compare
+mSet <- PlotPLS2DScore(mSet, "~/Desktop/brain-PLS_DA_2D_discriminative_analysis", "png", 600, width=NA, 1,2,0.95,1,0) # for only component 1 and 2 
+# plot the top 10 important metabolites accross the samples 
+mSet<-PlotPLS.Imp(mSet, "~/Desktop/brain-Important_metabolites_PLS_DA_Component1", "png", 600, width=NA, "vip", "Comp. 1", 10, FALSE) # for component 1
+mSet<-PlotPLS.Imp(mSet, "~/Desktop/brain-Important_metabolites_PLS_DA_Component2", "png", 600, width=NA, "vip", "Comp. 2", 10, FALSE) # for component 2
+```
+
+## Sparse Partial Least Squares - Discriminant Analysis (sPLS-DA)
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+mSet<-SPLSR.Anal(mSet, 5, 10, "same", "Mfold", 5, T) # plotting for the top 10 metabolites  
+
+# Plot sPLS-DA overview
+mSet<-PlotSPLSPairSummary(mSet, "~/Desktop/brain_sPLS-DA_pair_", format = "png", dpi=600, width=NA, 5) # 5 components
+
+# Create 2D sPLS-DA Score Plot
+mSet<-PlotSPLS2DScore(mSet, "~/Desktop/brain_sPLS-DA_2D_plot_", format = "png", dpi=600, width=NA, 1, 2, 0.95, 1, 0) # 2 components
+
+# Create sPLS-DA loadings plot
+mSet<-PlotSPLSLoading(mSet, "~/Desktop/brain_sPLS-DA_loading_top10_mets", format = "png", dpi=600, width=NA, 1,"overview")
+
+# check for error 
+mSet<-PlotSPLSDA.Classification(mSet, "~/Desktop/brain_sPLS_error_", format = "png", dpi=600, width=NA)
+# error is high at all components plotting so we will go for the 3D plot with the least error detected
+
+# ploting 3D plot for PC1,2,3 at angle 72
+mSet<-PlotSPLS3DScoreImg(mSet, "~/Desktop/brain_sPLS-DA_3D_plot_", format = "png", 600, width=NA, 1, 2, 3, 72)
+
+```
+
+## Orthogonal Partial Least Squares - Discriminant Analysis (oPLS-DA)
+```{r, message=FALSE, error=FALSE, warning=FALSE}
+# Perform oPLS-DA analysis
+mSet<-OPLSR.Anal(mSet, reg=TRUE)
+# Create a 2D oPLS-DA score plot
+mSet <- PlotOPLS2DScore(mSet, "~/Desktop/brain_oPLS_DA_2D", format = "png", dpi=600, width=NA, 1,2,0.95,1,0)
+# Create a significant features plot
+mSet <- PlotOPLS.Splot(mSet, "~/Desktop/brain_oPLS_DA_significant_features_plot", "all", "png", 600, width=NA)
+# Create a plot of 20 features ranked by importance
+mSet <- PlotOPLS.Imp(mSet, "~/Desktop/brain_oPLS_DA_ranked_feature_importance", "png", 600, width=NA, "vip", "tscore", 20,FALSE)
+# Perform and plot oPLS-DA permutation 
+mSet<-OPLSDA.Permut(mSet, 10000)
+```
+
+```{r}
+# plot the oPLS-DA imputation test 
+mSet<-PlotOPLS.Permutation(mSet, "~/Desktop/brain-oPLSDA-imputation_test_", format = "png", dpi=600, width=NA)
+```
+
+## Hierarchical Clustering: Heatmaps
+```{r, warning=FALSE, error=FALSE, message=FALSE, fig.height=13, fig.width=18}
+# we will proceed heatmaps using the z-score normalized metabolites 
+meta_all <- read.csv(here("processed_files_CSV/all_metabolites.csv"))
+
+# reformat the column names 
+colnames(meta_all) <- gsub("X", "", colnames(meta_all))
+colnames(meta_all) <- gsub("\\.", " ", colnames(meta_all))
+
+# z-normalise
+meta_all_normalized <- scale(meta_all[-c(1,2)])
+meta_all_normalized_new <- cbind(meta_all[,c(1:2)], meta_all_normalized)
+
+# prepare the annotations
+Group_annotation <- data.frame(SampleID = meta_all_normalized_new$SampleID, Group = meta_all_normalized_new$Group)
+Group_annotation$Group <- factor(Group_annotation$Group, levels = unique(Group_annotation$Group))
+rownames(Group_annotation) <- Group_annotation$SampleID
+
+# prepare the data 
+meta_all_normalized_new <- meta_all_normalized_new[,-2]
+meta_all_normalized_new <- t(meta_all_normalized_new) # transpose to have the metabolites as rows
+colnames(meta_all_normalized_new) <- meta_all_normalized_new[1,]
+meta_all_normalized_new <- meta_all_normalized_new[-1,]
+
+meta_all_numeric <- apply(meta_all_normalized_new, 2, as.numeric)
+rownames(meta_all_numeric) <- rownames(meta_all_normalized_new)
+colnames(meta_all_numeric) <- colnames(meta_all_normalized_new)
+meta_all_numeric <- as.matrix(meta_all_numeric)
+
+# ensure the order of samples is same
+all(rownames(Group_annotation) == colnames(meta_all_numeric))
+
+# plot heatmap
+brewer_palette <- colorRampPalette(brewer.pal(5, "PRGn"))(100) 
+plot <- pheatmap(meta_all_numeric, cluster_rows = T, show_rownames=T,
+                 border_color="grey", scale="none",
+                 height=45, annotation_col = Group_annotation, cluster_cols = F, angle_col ="45",
+                 fontsize_col = 10, fontsize_row = 11,
+                 cellwidth = 20, cellheight = 10, gaps_col = c(5,10), color = brewer_palette)
+
+plot
+#ggsave("~/Desktop/brain_metabolites-cp2.png", plot = plot, dpi = 600, bg = "white", width = 30, height = 25)
+```

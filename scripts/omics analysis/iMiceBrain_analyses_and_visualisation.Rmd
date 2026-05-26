@@ -1,0 +1,547 @@
+---
+title: "iMiceBrain analyses and visualisation"
+author: "Esraa Gabal - Baloni Lab - Purdue University"
+date: "2025-08-21"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_knit$set(root.dir = "/Users/eso1993/Library/CloudStorage/Box-Box/")
+```
+
+## installing and activating required libraries
+```{r, message=FALSE, warning=FALSE}
+library(here)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(tidyplots)
+library(pheatmap)
+library(VennDiagram)
+library(grid)
+library(futile.logger)
+library(ggVennDiagram)
+library(UpSetR)
+library(gridExtra)
+library(igraph)
+library(ggraph)
+library(biomaRt)
+library(eulerr)
+```
+
+## Applying TPM and Limma normalization on brain public datasets before model integration
+
+```{r}
+TPM_brain <- read.csv(here("iMiceBrain_required_data", "TPM_normalized_brain.csv"))
+limma_brain <- read.csv(here("iMiceBrain_required_data", "limma_normalized_brain.csv"))
+raw_brain <- read.csv(here("iMiceBrain_required_data", "raw_brain_data.csv"))
+brain_documentation <- read.csv(here("iMiceBrain_required_data", "brain_data_documentation.csv"))
+
+# assign the brain regions as factor 
+brain_documentation$Brain_tissue <- factor(brain_documentation$Brain_tissue, levels = unique(brain_documentation$Brain_tissue))
+
+# plotting the TPM and Limma normalized samples considering brain regions for coloring
+# convert to a long format
+TPM_brain_longer <- TPM_brain %>%
+  pivot_longer(cols = -Gene, names_to = "SampleID", values_to = "GeneCount")
+
+limma_brain_longer <- limma_brain %>%
+  pivot_longer(cols = -Gene, names_to = "SampleID", values_to = "GeneCount")
+
+raw_brain_longer <- raw_brain %>%
+  pivot_longer(cols = -Gene, names_to = "SampleID", values_to = "GeneCount")
+
+
+# inspect structure to ensure numeric values 
+str(TPM_brain_longer)
+str(limma_brain_longer)
+str(raw_brain_longer)
+
+# compute the log10 of gene count for TPM normalized and raw data 
+TPM_brain_longer$log10Gene <- log10(TPM_brain_longer$GeneCount)
+raw_brain_longer$log10Gene <- log10(raw_brain_longer$GeneCount)
+
+# replcae NAs by zero
+TPM_brain_longer[is.na(TPM_brain_longer)] <- 0
+raw_brain_longer[is.na(raw_brain_longer)] <- 0
+
+head(TPM_brain_longer, n = 5)
+head(limma_brain_longer, n = 5)
+head(raw_brain_longer, n = 5)
+
+```
+
+# boxplotting with colored regions
+```{r, fig.width=20, fig.height=10}
+# subset the brain documentation and asisgn a column names for sample ids matching that of count data 
+brain_regions <- brain_documentation[,c("GSM_accession","Brain_tissue")]
+colnames(brain_regions)[names(brain_regions) == 'GSM_accession'] <- "SampleID"
+
+# merge to the count data 
+TPM_brain_longer <- left_join(TPM_brain_longer, brain_regions, by = "SampleID") 
+limma_brain_longer <- left_join(limma_brain_longer, brain_regions, by = "SampleID") 
+raw_brain_longer <- left_join(raw_brain_longer, brain_regions, by = "SampleID") 
+
+head(TPM_brain_longer, n = 5)
+head(limma_brain_longer, n = 5)
+head(raw_brain_longer, n = 5)
+
+# plot 
+ggplot(raw_brain_longer, aes(x = SampleID, y = log10Gene, fill = Brain_tissue)) +
+  geom_boxplot() + theme_minimal() +
+  labs(x = "Sample ID", y = "log10 Gene Count", title = "Raw (no-normalization) brain transcriptomics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9)) 
+
+ggplot(TPM_brain_longer, aes(x = SampleID, y = log10Gene, fill = Brain_tissue)) +
+  geom_boxplot() + theme_minimal() +
+  labs(x = "Sample ID", y = "log10 Gene Count", title = "TPM normalized brain transcriptomics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9)) 
+
+ggplot(limma_brain_longer, aes(x = SampleID, y = GeneCount, fill = Brain_tissue)) +
+  geom_boxplot() + theme_minimal() +
+  labs(x = "Sample ID", y = "Gene Count", title = "Limma normalized brain transcriptomics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9)) 
+
+```
+
+## comparison between brain-drafts and the consensus iMiceBrain
+```{r, fig.width=25, fig.height=10}
+genes <- read.csv(here("iMiceBrain_required_data", "mouseBrain_drafts_genes.csv"))
+mets <- read.csv(here("iMiceBrain_required_data", "mouseBrain_drafts_metabolites.csv"))
+rxns <- read.csv(here("iMiceBrain_required_data", "mouseBrain_drafts_reactions.csv"))
+
+genes[] <- lapply(genes, as.character)
+
+genes_long <- pivot_longer(genes, cols = everything(), names_to = "Model", values_to = "Count") %>% 
+  mutate(Feature = "Genes")
+mets_long <- pivot_longer(mets, cols = everything(), names_to = "Model", values_to = "Count") %>% 
+  mutate(Feature = "Metabolites")
+rxns_long <- pivot_longer(rxns, cols = everything(), names_to = "Model", values_to = "Count") %>% 
+  mutate(Feature = "Reactions")
+
+# combine 
+combined_data <- bind_rows(genes_long, mets_long, rxns_long)
+
+# remove any empty cells
+combined_data[] <- lapply(combined_data, function(x) if (is.character(x)) trimws(x) else x)
+combined_data <- combined_data %>%
+  filter(!is.na(Count) & Count != "") %>%
+  group_by(Model, Feature) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# extract the model names only
+combined_data$Model <- gsub("_.*", "", combined_data$Model)
+combined_data$Model <- factor(combined_data$Model, levels = c(
+  "mCADRE", "rFASTACOROMICS", "CORDA", "ftINIT"
+))
+
+# barplot visualisation
+ggplot(combined_data, aes(x = Model, y = Count, fill = Feature)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8), color = "black") +
+  labs(
+    title = "Brain-Draft GEMs features",
+    x = "Model",
+    y = "Count"
+  ) +
+  scale_fill_brewer(palette = "PuBuGn") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15, margin = margin(r = 0.5)),
+        axis.title.x = element_text(size = 16, face = "bold", margin = margin(t = 10)),
+        axis.title.y = element_text(size = 16, face = "bold")) + ylim(c(0,10000))
+```
+
+## comparing the iMiceBrain with other models 
+```{r}
+iMiceBrain <- read.csv(here("iMiceBrain_required_data", "iMiceBrain_stats.csv"))
+imm1865 <- read.csv(here("iMiceBrain_required_data", "iMM1865_stats.csv"))
+recon3d <- read.csv(here("iMiceBrain_required_data", "Recon3d_stats.csv"))
+brain_human <- read.csv(here("iMiceBrain_required_data", "Brain_atlas_harvey_model_stats.csv"))
+```
+
+```{r, fig.width=5, fig.height=5, warning=FALSE, message=FALSE}
+# metabolites
+met_list <- list(
+  iMiceBrain = trimws(iMiceBrain$mets),
+  iMM1865 = trimws(imm1865$mets),
+  Recon3D = trimws(recon3d$mets),
+  `Human brain` = trimws(brain_human$mets)
+)
+
+met_list <- lapply(met_list, function(x) x[!is.na(x) & x != ""]) # remove any NA
+
+venn_met <- venn.diagram(
+  x = met_list,
+  category.names = c("iMiceBrain", "iMM1865", "Recon3D", "Human Brain"),
+  filename = NULL,
+  
+  # Venn Diagram settings
+  imagetype = "png",
+  height = 3000,
+  width = 3000,
+  resolution = 600,
+  compression = "lzw",
+  
+  # Circles
+  lwd = 2,
+  lty = 'blank',
+  fill = c("#4B6C8B", "#8DA9C4", "#CBD2D0", "#E8E9EB"),
+  
+  # Numbers
+  cex = 1.2,
+  fontface = "bold",
+  fontfamily = "sans",
+  
+  # Labels
+  cat.cex = 0.9,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-30, 30, -30, 30),
+  cat.dist = c(0.06, 0.06, 0.06, 0.06),
+  cat.fontfamily = "sans",
+  cat.col = "darkred")
+
+grid.newpage()
+grid.draw(venn_met)
+```
+
+```{r, fig.width=5, fig.height=5}
+# reactions
+rxns_list <- list(
+  iMiceBrain = trimws(iMiceBrain$rxns),
+  iMM1865 = trimws(imm1865$rxns),
+  Recon3D = trimws(recon3d$rxns),
+  `Human brain` = trimws(brain_human$rxns)
+)
+
+rxns_list <- lapply(rxns_list, function(x) x[!is.na(x) & x != ""]) # remove any NA
+
+venn_rxn <- venn.diagram(
+  x = rxns_list,
+  category.names = c("iMiceBrain", "iMM1865", "Recon3D", "Human Brain"),
+  filename = NULL,
+  
+  # Venn Diagram settings
+  imagetype = "png",
+  height = 3000,
+  width = 3000,
+  resolution = 600,
+  compression = "lzw",
+  
+  # Circles
+  lwd = 2,
+  lty = 'blank',
+  fill = c("#A67B5B", "#C9B79C", "#7C9473", "#DAD0C2"),
+  
+  # Numbers
+  cex = 1.2,
+  fontface = "bold",
+  fontfamily = "sans",
+  
+  # Labels
+  cat.cex = 0.9,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-30, 30, -30, 30),
+  cat.dist = c(0.06, 0.06, 0.06, 0.06),
+  cat.fontfamily = "sans",
+  cat.col = "darkred")
+
+grid.newpage()
+grid.draw(venn_rxn)
+```
+
+## Checking the specificty of iMiceBrain genes using HPA and Allen mouse-brain data
+```{r, fig.width=15, fig.height=10, warning=FALSE, message=FALSE}
+
+##### HPA data 
+mouse_brain <- read.csv(here("iMiceBrain_required_data", "transcript_rna_mousebrain_human_proteome_atlas.csv"))
+mouse_brain <- mouse_brain[rowSums(mouse_brain[ , sapply(mouse_brain, is.numeric)]) >= 1.0, ] # include genes with total TPM is >1 a common threshold for conidering gene expressed in TPM
+
+# get the entrez gene id using biomart
+mart = useMart("ensembl", host = "https://www.ensembl.org", dataset = "mmusculus_gene_ensembl")
+raw_id <- getBM(attributes = c("external_gene_name", "entrezgene_id"),
+                filters = "external_gene_name",
+                values = mouse_brain$Gene,
+                mart = mart)
+
+brain_id <- read.csv(here("iMiceBrain_required_data", "iMiceBrain_stats.csv"))
+brain_id <- tibble(brain_id$genes)
+brain_id <- na.omit(brain_id)
+colnames(brain_id)[names(brain_id) == 'brain_id$genes'] <- "entrezgene_id"
+
+raw_brain <- left_join(brain_id, raw_id, by= "entrezgene_id")
+colnames(raw_brain)[names(raw_brain) == 'external_gene_name'] <- "Gene"
+
+raw_brain_new <- left_join(raw_brain, mouse_brain, by = "Gene")
+raw_brain_new <- na.omit(raw_brain_new)
+
+# make a pie chart to show how many brain-specific genes covered in iMiceBrain vs the total metabolic genes captured in Human Proteome Atlas (HPA) mouse-brain transcriptomics
+
+genes_covered <- intersect(raw_brain_new$entrezgene_id, raw_brain$entrezgene_id)
+
+gene_coverage_counts <- c(
+  `HPA Brain-Specific Genes` = length(genes_covered),
+  `iMiceBrain-Specific Genes` = length(setdiff(raw_brain$entrezgene_id, genes_covered))
+)
+
+# Create data frame
+df <- data.frame(
+  group = names(gene_coverage_counts),
+  count = gene_coverage_counts
+)
+
+# Add proportions and label positions
+df <- data.frame(
+  group = names(gene_coverage_counts),
+  count = gene_coverage_counts
+) %>%
+  mutate(
+    prop = count / sum(count) * 100,
+    label = paste0(group, "\n", round(prop, 1), "%")
+  )
+
+# Compute manual ypos for better centering
+df$ypos <- c(
+  sum(df$prop) - df$prop[1] / 2,  
+  df$prop[2] / 3                 
+)
+
+# Plot pie chart
+pie1 <- ggplot(df, aes(x = "", y = prop, fill = group)) +
+  geom_bar(stat = "identity", width = 2, color = "grey") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(y = ypos, label = label), color = "black", size = 5) +
+  scale_fill_brewer(palette = "Set4") +
+  theme_void() +
+  labs(title = "Brain-Specific Metabolic Genes in iMiceBrain", fill = "iMiceBrain genes") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"))
+
+##### allen data 
+# read allen mouse-brain expression
+allen <- read.table(here("iMiceBrain_required_data", "rna_mouse_brain_allen.tsv"), header = T, sep = "\t", quote = "")
+allen$Gene <- tools::toTitleCase(tolower(allen$Gene))
+allen$BrainRegion <- tools::toTitleCase(tolower(allen$BrainRegion))
+
+# read the iMiceBrain model gene names 
+ortho_imicebrain <- read_csv(here("iMiceBrain_required_data", "iMiceBrain_genes_human_orthologous.csv"))
+
+# get the pie chart for percentage 
+genes_covered_allen <- intersect(allen$Gene, ortho_imicebrain$mouseGene)
+
+gene_coverage_counts_2 <- c(
+  `Allen Brain-Specific Genes` = length(genes_covered_allen),
+  `iMiceBrain-Specific Genes` = length(setdiff(ortho_imicebrain$mouseGene, genes_covered_allen))
+)
+
+# Create data frame
+df_2 <- data.frame(
+  group = names(gene_coverage_counts_2),
+  count = gene_coverage_counts_2
+)
+
+# Add proportions and label positions
+df_2 <- data.frame(
+  group = names(gene_coverage_counts_2),
+  count = gene_coverage_counts_2
+) %>%
+  mutate(
+    prop = count / sum(count) * 100,
+    label = paste0(group, "\n", round(prop, 1), "%")
+  )
+
+# Compute manual ypos for better centering
+df_2$ypos <- c(
+  sum(df_2$prop) - df_2$prop[1] / 2,  
+  df_2$prop[2] / 3                 
+)
+
+# Plot pie chart
+pie2 <- ggplot(df_2, aes(x = "", y = prop, fill = group)) +
+  geom_bar(stat = "identity", width = 2, color = "grey") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(y = ypos, label = label), color = "black", size = 5) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_void() +
+  labs(title = "Brain-Specific Metabolic Genes in iMiceBrain", fill = "iMiceBrain genes") +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"))
+
+grid.arrange(pie1, pie2, ncol = 2)
+```
+# getting the iMiceBrain genes' expression from mouse-brain allen rna data 
+
+```{r, fig.height=55, fig.width=15, warning=FALSE, message=FALSE}
+# read the iMiceBrain model gene names 
+ortho_imicebrain <- read_csv(here("iMiceBrain_required_data", "iMiceBrain_genes_human_orthologous.csv"))
+
+# get the expression of iMiceBrain genes from the brain-mouse allen dataset
+# extract the allen expression of those concerning iMiceBrain genes 
+allen_vs_model <- allen %>% filter(Gene %in% ortho_imicebrain$mouseGene)
+allen_vs_model <- allen_vs_model[,-1]
+
+# convert to a wide format 
+allen_vs_model_wide <- allen_vs_model %>%
+  as.data.frame() %>%
+  pivot_wider(
+    names_from = BrainRegion,
+    values_from = ExpressionEnergy,
+    values_fill = 0  # fill missing with 0
+  )
+allen_vs_model_wide <- as.data.frame(allen_vs_model_wide)
+rownames(allen_vs_model_wide) <- allen_vs_model_wide[,"Gene"]
+allen_vs_model_wide <- as.matrix(allen_vs_model_wide[,-1])
+
+# heatmap
+pheatmap(allen_vs_model_wide, cluster_rows = F, show_rownames=F,
+                      scale="row",
+                      height=20, cluster_cols = T,
+                      cellwidth = 50, cellheight = 2,
+                      number_color = "black", color = hcl.colors(50, "BluYl"), angle_col = 45,
+                      fontsize_col = 15, border_color = NA)
+```
+
+
+```{r, fig.width=5, fig.height=5, warning=FALSE}
+
+# getting the barplots for gene number in each model
+genes_all <- list(
+  iMiceBrain   = trimws(iMiceBrain$genes),
+  iMM1865      = trimws(imm1865$genes),
+  Recon3D      = trimws(recon3d$genes),
+  `Human brain` = trimws(brain_human$genes)
+)
+
+genes_all <- lapply(genes_all, function(x) x[!is.na(x) & x != ""])
+
+# get the gene number 
+gene_counts <- data.frame(
+  Model = names(genes_all),
+  GeneCount = sapply(genes_all, function(x) length(unique(x)))
+)
+
+ggplot(gene_counts, aes(x = Model, y = GeneCount)) +
+  geom_bar(stat = "identity", fill = "grey70", color = "black", linetype = "dashed",
+           size = 0.7, width = 0.5) +
+  theme_minimal() +
+  labs(title = "Gene Count per Model", x = "Model", y = "Unique Gene Count") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(size = 12, face = "bold", margin = margin(r = 0.5)),
+    axis.text.y = element_text(size = 12, margin = margin(t = 0.5)),
+    text = element_text(size = 12)
+  )
+```
+
+## Plotting the human-mouse orthologous genes in iMiceBrain vs human recon3d and brain-harvey
+```{r, fig.width=20, fig.height=10, message=FALSE}
+
+ortho_imicebrain <- read_csv(here("iMiceBrain_required_data", "iMiceBrain_genes_human_orthologous.csv"))
+
+# getting the barplots for gene number in each model
+genes_VENN <- list(
+  iMiceBrain   = trimws(na.omit(ortho_imicebrain$humanID)),
+  Recon3D      = trimws(na.omit(recon3d$genes)),
+  `Human brain` = trimws(na.omit(brain_human$genes))
+)
+
+# get the gene number 
+gene_counts <- data.frame(
+  Model = names(genes_VENN),
+  GeneCount = sapply(genes_VENN, function(x) length(unique(x)))
+)
+
+# please note that different gene ids in iMiceBrain for isozymes have the same human gene NCBI ID as captured by homologene and 
+# hence they are have duplicates. the venn diagram captures only unique genes (27 duplicates in iMiceBrain)
+
+venn_gene <- venn.diagram(
+  x = genes_VENN,
+  category.names = c("iMiceBrain", "Recon3D", "Human Brain"),
+  filename = NULL,
+  
+  # Venn Diagram settings
+  imagetype = "png",
+  height = 3000,
+  width = 3000,
+  resolution = 600,
+  compression = "lzw",
+  
+  # Circles
+  lwd = 2,
+  lty = 'blank',
+  fill = c("khaki3", "indianred", "#8172B2"),
+  
+  # Numbers
+  cex = 1.24,
+  fontface = "bold",
+  fontfamily = "sans",
+  
+  # Labels
+  cat.cex = 1.4,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-30, 30, -30),
+  cat.dist = c(0.02, 0.02, 0.02),
+  cat.fontfamily = "sans",
+  cat.col = "black")
+
+
+# another way of mapping proportional Venn diagram
+
+fit <- euler(
+  list(
+    iMiceBrain   = unique(genes_VENN$iMiceBrain),
+    Recon3D      = unique(genes_VENN$Recon3D),
+    Human_Brain  = unique(genes_VENN$`Human brain`)
+  )
+)
+
+venn_2 <- plot(
+  fit,
+  fills = list(fill = c("khaki3", "indianred", "#8172B2"), alpha = 0.5),
+  edges = TRUE,
+  labels = list(
+    labels = c("iMiceBrain", "Recon3D", "Human Brain"),
+    font = 2
+  ),
+  quantities = list(cex = 1.3),  # numbers inside regions
+  main = list(label = "Shared and Unique Genes", cex = 1.5, font = 2),
+  legend = FALSE,
+  margins = c(0.7, 0.7, 0.7, 0.7), cex = 1.4
+)
+
+grid.newpage()
+venn_gene_grob <- grid.grabExpr(grid.draw(venn_gene))
+venn_2_grob    <- grid.grabExpr(grid.draw(venn_2))
+
+grid.arrange(venn_gene_grob, venn_2_grob, ncol = 2)
+```
+
+## getting the most abundant subsystems in iMiceBrain (top 20)
+```{r, message=FALSE, warning=FALSE, fig.width=6.5, fig.height=6.6}
+iMiceBrain = read.csv(here("iMiceBrain_required_data", "iMiceBrain_stats.csv"))
+
+# summaries the number of subsystems and then plot the top 20 in a vertical barplot
+iMiceBrain_sub <- iMiceBrain[, "subsystems", drop = FALSE]
+
+iMiceBrain_summary <- iMiceBrain_sub %>%
+  group_by(subsystems) %>%
+  summarise(Total_Subsystems = n()) %>%
+  arrange(desc(Total_Subsystems)) %>%
+  slice_head(n = 20)
+
+ggplot(iMiceBrain_summary, aes(x = reorder(subsystems, Total_Subsystems), y = Total_Subsystems)) +
+  geom_bar(stat = "identity", fill = "#8B636C", color = "black") +
+  coord_flip() +
+  labs(title = "Top 20 Subsystems in iMiceBrain",
+       x = "Subsystem",
+       y = "Number of Reactions") +
+  theme_minimal() + theme(axis.text.x = element_text(size = 13, margin = margin(t = 5)),
+                          axis.text.y = element_text(size = 13, margin = margin(r = 5)),
+                          axis.title.y = element_blank(),
+                          axis.title.x = element_text(margin = margin(t = 10), size = 15))
+```
+
+
